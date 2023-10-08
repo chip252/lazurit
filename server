@@ -1,0 +1,67 @@
+
+
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <WiFiServer.h>
+
+const char* ssid = "your_SSID"; // Название вашей Wi-Fi сети
+const char* password = "your_PASSWORD"; // Пароль от вашей Wi-Fi сети
+
+WiFiServer server(80); // Создаем объект сервера на порте 80
+
+void setup()
+{
+  Serial.begin(115200);
+  delay(10);
+
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("WiFi connected");
+
+  server.begin();
+}
+
+void loop()
+{
+  // Прослушиваем подключения клиентов
+  WiFiClient client = server.available();
+  if (client)
+  {
+    while (client.connected())
+    {
+      // Если клиент отправил HTTP запрос
+      if (client.available())
+      {
+        String request = client.readStringUntil('\r');
+        Serial.println(request);
+
+        // Определяем путь запроса
+        int keyPosition = request.indexOf("/store?key=");
+        if (keyPosition != -1)
+        {
+          // Извлекаем ключ из запроса
+          String keyString = request.substring(keyPosition + 11);
+          int key = keyString.toInt();
+          
+          // Производим дальнейшие действия с полученным ключом
+          Serial.println("Received key from client: " + keyString);
+
+          // Отправляем ответ клиенту
+          client.println("HTTP/1.1 200 OK");
+          client.println("Content-type:text/html");
+          client.println();
+          client.println("Key received");
+          break;
+        }
+      }
+    }
+    
+    // Закрываем соединение с клиентом
+    client.stop();
+    Serial.println("Client disconnected");
+  }
+}

@@ -1,0 +1,66 @@
+#include <WiFi.h>
+
+const char* ssid = "your_SSID"; // Название вашей Wi-Fi сети
+const char* password = "your_PASSWORD"; // Пароль от вашей Wi-Fi сети
+const char* serverIP = "server_IP_address"; // IP адрес сервера
+
+int lightSensorPin = 34; // Пин подключения светоприемника
+
+void setup()
+{
+  Serial.begin(115200);
+  delay(10);
+
+  pinMode(lightSensorPin, INPUT);
+
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("WiFi connected");
+
+  // Отправляем ключ на сервер
+  sendKeyToServer();
+}
+
+void loop()
+{
+  // Ничего не делаем в бесконечном цикле
+}
+
+void sendKeyToServer()
+{
+  // Генерируем случайный ключ
+  int key = random(1000, 9999);
+
+  // Отправляем ключ на сервер через HTTP запрос
+  WiFiClient client;
+  if (!client.connect(serverIP, 80))
+  {
+    Serial.println("Connection failed");
+    return;
+  }
+  
+  String url = "/store?key=" + String(key);
+  String request = "GET " + url + " HTTP/1.1\r\n" +
+                   "Host: " + serverIP + "\r\n" +
+                   "Connection: close\r\n\r\n";
+  client.print(request);
+  
+  Serial.println("Key sent to server: " + String(key));
+  
+  // Дожидаемся ответа от сервера
+  while (client.connected())
+  {
+    if (client.available())
+    {
+      String line = client.readStringUntil('\r');
+      Serial.print(line);
+    }
+  }
+  
+  // Закрываем соединение с сервером
+  client.stop();
+}
